@@ -13,6 +13,7 @@ library(janitor)
 library(ggcorrplot)
 library(scales)
 library(skimr)
+library(tidyverse)
 
 pbp <- load_pbp(2018:2024)
 
@@ -36,7 +37,7 @@ team_stats <- pbp %>%
   clean_names()
 ```
 
-```{r}
+```{r include = FALSE}
 games <- nflreadr::load_schedules(2018:2024)
 
 team_wins <- games %>%
@@ -73,7 +74,7 @@ corr_data <- team_summary %>%
 corr_matrix <- cor(corr_data, use = "pairwise.complete.obs")
 
 ggcorrplot(corr_matrix, lab = TRUE, type = "lower",
-           title = "Correlation Between Team Statistics and Win Percentage)
+           title = "Correlation Between Team Statistics and Win Percentage")
 ```
 ```{r}
 # Plot 1
@@ -81,7 +82,7 @@ ggplot(team_summary, aes(x = success_rate, y = win_pct)) +
   geom_point(color = "steelblue", alpha = 0.6) +
   geom_smooth(method = "lm", color = "darkblue", se = FALSE) +
   labs(
-    title = " PBP Success Rate vs. Win Percentage",
+    title = "PBP Success Rate vs. Win Percentage",
     x = "Success Rate (per play)",
     y = "Win Percentage"
   ) +
