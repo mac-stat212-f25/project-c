@@ -73,8 +73,9 @@ corr_data <- team_summary %>%
 corr_matrix <- cor(corr_data, use = "pairwise.complete.obs")
 
 ggcorrplot(corr_matrix, lab = TRUE, type = "lower",
-           title = "Correlation Between Team Statistics and Win Percentage)
+           title = "Correlation Between Team Statistics and Win Percentage")
 ```
+
 ```{r}
 # Plot 1
 ggplot(team_summary, aes(x = success_rate, y = win_pct)) +
