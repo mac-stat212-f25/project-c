@@ -1,0 +1,89 @@
+---
+title: "Member 1: Christian J."
+---
+
+
+
+
+This exploratory data analysis investigates team-level NFL data from 2018–2024 using nflreadr/nflfastR. The goal is to examine which team statistics—such as offensive efficiency, defensive performance, and turnover margin—best relate to game success (wins). This EDA summarizes the data, checks for missingness, and provides early visual insights before building predictive models. This data originally consisted of NFL statistics ranging from 1999-2025, but given how much american football has evolved over 2 decades, it seems more appropriate to focus on statistics from 2018 to present. To explore this data, I cleaned it. Firstly filtering so stats begin during the 2018 season like mentioned, then filtering so the data only consists of regular season games. I did this to ensure each NFL franchise had a consistent amount of statistics. Using playoff stats as well could have altered the consistency, given that some franchises are more consistently good (making playoffs) and some are more consistently bad (missing playoffs). I then go onto looking at team and mean offensive EPA, which in simple terms is just how efficient and successful a team is on each given play (are they making the most of every play). Using my favorite team and my knowledge regarding their performance history, I found a strong correlation between EPA and team success. For example in 2021, the Detroit Lions lost 13 games, and only won 3; the team's total EPA for that season was -85.239390 and the mean EPA was -0.06132330. For comparison, in 2024 the Lions won 15 games and only lost 2; the team's total EPA for that season was 202.626047, with the mean EPA being 0.135084031. This comparison shows how strongly a team’s EPA reflects its overall success. In seasons where the Lions performed poorly, their total and mean EPA were deeply negative, indicating that the team was consistently losing value on a play-by-play basis. But in seasons where they won many more games, both their total and mean EPA were strongly positive. In short, higher EPA isn’t just a statistical improvement — it directly corresponds to better on-field performance and more wins.
+
+
+
+
+
+```{r}
+library(nflreadr)
+library(dplyr)
+library(ggplot2)
+
+games <- load_schedules()
+games_clean <- games %>%
+  filter(season >= 2018,
+         game_type == "REG")
+```
+
+```{r}
+team_games <- games_clean %>%
+  select(game_id, season, home_team, away_team, home_score, away_score) %>%
+  mutate(
+    home_win = home_score > away_score,
+    away_win = away_score > home_score
+  )
+
+team_wins <- team_games %>%
+  tidyr::pivot_longer(
+    cols = c(home_team, away_team),
+    names_to = "location",
+    values_to = "team"
+  ) %>%
+  mutate(
+    win = case_when(
+      location == "home_team" & home_win ~ 1,
+      location == "away_team" & away_win ~ 1,
+      TRUE ~ 0
+    )
+  ) %>%
+  group_by(team, season) %>%
+  summarize(wins = sum(win), .groups = "drop")
+```
+
+```{r}
+pbp <- nflreadr::load_pbp(2018:2024)
+
+team_epa <- pbp %>%
+  filter(!is.na(epa), !is.na(posteam)) %>%
+  group_by(season, team = posteam) %>%
+  summarize(
+    mean_epa = mean(epa, na.rm = TRUE),
+    total_epa = sum(epa, na.rm = TRUE),
+    plays = n(),
+    .groups = "drop"
+  )
+```
+
+```{r}
+team_stats <- team_wins %>%
+  left_join(team_epa, by = c("team", "season"))
+```
+
+```{r}
+ggplot(team_stats, aes(x = mean_epa, y = wins)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Team EPA vs. Team Success (Wins)",
+    x = "Mean Offensive EPA",
+    y = "Wins"
+  )
+
+```
+
+```{r}
+team_games %>%
+  summarise(
+    total_games = n(),
+    home_win_rate = mean(home_win, na.rm = TRUE),
+    away_win_rate = mean(away_win, na.rm = TRUE)
+  )
+```
+
