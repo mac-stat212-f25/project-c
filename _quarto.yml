@@ -21,7 +21,7 @@ number-depth: 2
 
 
 book:
-  title: "Project Title"
+  title: "Winning Numbers: Analysis of Success Metrics in the Modern NFL"
   author: ["Christian J.", "Colin M."]
   date: today  # use today to update date published based on last time project was edited
   date-format: full
