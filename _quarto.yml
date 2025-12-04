@@ -45,9 +45,9 @@ book:
       # footer text
 
   sidebar:
-    title: "C$"
-    logo: assets/sidebar-logo.png
-    logo-alt: "Random negative space illustration"
+    title: "Table of Contents"
+    logo: assets/nfl.png
+    logo-alt: "NFL logo"
     collapse-level: 2
     style: "docked"
     pinned: true
