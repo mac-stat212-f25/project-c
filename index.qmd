@@ -1,5 +1,5 @@
 ---
-title: "Introduction"
+title: "Report"
 ---
 
   &nbsp;&nbsp;&nbsp; As football players at Macalester, Christian and I wondered why it seems like some football teams just can’t improve. Is it the players? The coaches? The general management? We set out to determine which team metrics were most affiliated with a team’s success over the course of a given NFL football season to find out whether this was a problem of performance or something deeper rooted. 
