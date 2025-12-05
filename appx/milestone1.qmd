@@ -1,8 +1,8 @@
 ---
-title: "Proposal"
+title: "Milestone 1: Proposal + Dataset"
 ---
 
-- Members: Christian Jones + Colin Mathews
+- Members: Christian Jones + Colin Matthews
 - Project Description: This project aims to identify which American football statistics are most strongly associated with team success, as measured by overall record.
 - Research Questions: 
   1. Which team performance statistics are most strongly correlated with overall success in American football?
