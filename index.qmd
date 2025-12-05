@@ -1,10 +1,8 @@
 ---
-title: "Report"
+title: "Introduction"
 ---
 
-Your report goes here.
+This project examines which NFL team statistics are most strongly associated with overall success, measured by win–loss record. Using team-level data from the nflreadR and nflfastR packages (2018–2024), we analyze offensive, defensive, and situational performance metrics—including yards gained, turnovers, third-down efficiency, and red-zone performance—to determine which factors best predict winning. Our goal is to provide clear, data-driven insights into the key statistical drivers of team success in American football.
 
-```{r}
-# a test code chunk
-```
+
 
