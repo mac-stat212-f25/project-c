@@ -153,10 +153,10 @@ cookieconsent.run({
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
       <a href="../index.html" class="sidebar-logo-link">
-      <img src="../assets/sidebar-logo.png" alt="" class="sidebar-logo py-0 d-lg-inline d-none">
+      <img src="../assets/nfl.png" alt="" class="sidebar-logo py-0 d-lg-inline d-none">
       </a>
     <div class="sidebar-title mb-0 py-0">
-      <a href="../">C$</a> 
+      <a href="../">Table of Contents</a> 
         <div class="sidebar-tools-main">
   <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
   <a href="" class="quarto-reader-toggle quarto-navigation-tool px-1" onclick="window.quartoToggleReader(); return false;" title="Toggle reader mode">
@@ -219,16 +219,6 @@ cookieconsent.run({
   <a href="../appx/case-study.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Case Study</span></a>
   </div>
 </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../wa/wa-member1.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Member 1 First Name &amp; Last Name Initial</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../wa/wa-member2.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Member 2 First Name &amp; Last Name Initial</span></a>
-  </div>
-</li>
       </ul>
   </li>
     </ul>
@@ -261,398 +251,98 @@ cookieconsent.run({
 </header>
 
 
-<p>This exploratory data analysis aims to determine the most important statistics in determining an NFL team’s success through correlation based coefficient selection. Using the nflreadR package, I was able to access a plethora of team stats and chose a handful that I, as a football player, thought might be important in determining success over a given season. First, I had to filter the dataset slightly to a handful of variables I thought would be useful and then clean that dataset to ensure all values worked in conjunction with one another in the final data frame. I then created a team_wins variable, as the nflreadR package did not have one already available. Finally, I created a correlation heat map to determine which of these possible predictors was most positively correlated with team success (wins in a given season). What I found is that EPA was most correlated with win percentage; But, this felt a little fake due to the fact that EPA (Expected Points Added) is a premade model that chooses statistics that have already been deemed important to team success. To remedy this, I chose the next most correlated predictor in team_success. For football familiar people, this is how often a team’s offense can “stay ahead of the sticks,” or in other words, can a team get 4 yards on first down, 3 yards on second down, and convert on 3rd and 4th down. I think the most significant finding throughout this process though was not the fact that a team’s ability to move the ball is strongly correlated with win percentage, but instead that the majority of the strong positive correlation came from offensive metrics as opposed to defensive metrics.</p>
+<p>This exploratory data analysis aims to find whether offensive or defensive efficiency is more important to team success and how performance in key game situations correlates with team success. Using nflreadR, which has a database of NFL statistics from the last 23 years, I created a ‘wins’ and ‘win_pct’ variable by creating an inequality function with home score and away score for each and team and then dividing that number by the total number of games in a football season. I then looked at EPA (Expected Points Added) for Offense and Defense and determined the correlation between each side’s EPA and win percentage to find that neither offense nor defense is more important for team success; Rather, they are equally important. The next item I wanted to look at was 3 metrics that are usually looked at as “key indicators of success:” Redzone efficiency, third down differential, and turnover margin. Redzone efficiency, or how often you score points when inside the 25 yard line, turned out to be the least correlated with win percentage with a correlation coefficient of only 0.37. Third down differential, a stat I created that weighs how often a team converts 3rd downs on offense while stopping their opponent, and turnover margin were similarly high in correlation with coefficients around 0.65, showing that improvement of performance in these situational metrics would correlate with more wins over the course of a season.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="fu">library</span>(nflreadr)</span>
-<span id="cb1-2"><a href="#cb1-2"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb1-3"><a href="#cb1-3"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb1-4"><a href="#cb1-4"></a><span class="fu">library</span>(tidyr)</span>
-<span id="cb1-5"><a href="#cb1-5"></a><span class="fu">library</span>(janitor)</span>
-<span id="cb1-6"><a href="#cb1-6"></a><span class="fu">library</span>(ggcorrplot)</span>
-<span id="cb1-7"><a href="#cb1-7"></a><span class="fu">library</span>(scales)</span>
-<span id="cb1-8"><a href="#cb1-8"></a><span class="fu">library</span>(skimr)</span>
-<span id="cb1-9"><a href="#cb1-9"></a></span>
-<span id="cb1-10"><a href="#cb1-10"></a>pbp <span class="ot">&lt;-</span> <span class="fu">load_pbp</span>(<span class="dv">2018</span><span class="sc">:</span><span class="dv">2024</span>)</span>
-<span id="cb1-11"><a href="#cb1-11"></a></span>
-<span id="cb1-12"><a href="#cb1-12"></a>team_stats <span class="ot">&lt;-</span> pbp <span class="sc">%&gt;%</span></span>
-<span id="cb1-13"><a href="#cb1-13"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(posteam)) <span class="sc">%&gt;%</span></span>
-<span id="cb1-14"><a href="#cb1-14"></a>  <span class="fu">group_by</span>(season, posteam) <span class="sc">%&gt;%</span></span>
-<span id="cb1-15"><a href="#cb1-15"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb1-16"><a href="#cb1-16"></a>    <span class="at">games_played     =</span> <span class="fu">n_distinct</span>(game_id),</span>
-<span id="cb1-17"><a href="#cb1-17"></a>    <span class="at">plays            =</span> <span class="fu">n</span>(),</span>
-<span id="cb1-18"><a href="#cb1-18"></a>    <span class="at">mean_epa         =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb1-19"><a href="#cb1-19"></a>    <span class="at">total_epa        =</span> <span class="fu">sum</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb1-20"><a href="#cb1-20"></a>    <span class="at">success_rate     =</span> <span class="fu">mean</span>(success, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb1-21"><a href="#cb1-21"></a>    <span class="at">yards_per_play   =</span> <span class="fu">mean</span>(yards_gained, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb1-22"><a href="#cb1-22"></a>    <span class="at">turnovers        =</span> <span class="fu">sum</span>(interception <span class="sc">+</span> fumble_lost, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb1-23"><a href="#cb1-23"></a>    <span class="at">first_down_rate  =</span> <span class="fu">mean</span>(first_down <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb1-24"><a href="#cb1-24"></a>    <span class="at">pass_rate        =</span> <span class="fu">mean</span>(pass <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb1-25"><a href="#cb1-25"></a>    <span class="at">penalty_yards    =</span> <span class="fu">sum</span>(penalty_yards, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb1-26"><a href="#cb1-26"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb1-27"><a href="#cb1-27"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb1-28"><a href="#cb1-28"></a>  <span class="fu">rename</span>(<span class="at">team =</span> posteam) <span class="sc">%&gt;%</span></span>
-<span id="cb1-29"><a href="#cb1-29"></a>  <span class="fu">clean_names</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-<div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a>games <span class="ot">&lt;-</span> nflreadr<span class="sc">::</span><span class="fu">load_schedules</span>(<span class="dv">2018</span><span class="sc">:</span><span class="dv">2024</span>)</span>
-<span id="cb2-2"><a href="#cb2-2"></a></span>
-<span id="cb2-3"><a href="#cb2-3"></a>team_wins <span class="ot">&lt;-</span> games <span class="sc">%&gt;%</span></span>
-<span id="cb2-4"><a href="#cb2-4"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(home_team), game_type <span class="sc">==</span> <span class="st">"REG"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb2-5"><a href="#cb2-5"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb2-6"><a href="#cb2-6"></a>    <span class="at">home_win =</span> <span class="fu">ifelse</span>(home_score <span class="sc">&gt;</span> away_score, <span class="dv">1</span>, <span class="dv">0</span>),</span>
-<span id="cb2-7"><a href="#cb2-7"></a>    <span class="at">away_win =</span> <span class="fu">ifelse</span>(away_score <span class="sc">&gt;</span> home_score, <span class="dv">1</span>, <span class="dv">0</span>)</span>
-<span id="cb2-8"><a href="#cb2-8"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb2-9"><a href="#cb2-9"></a>  <span class="fu">select</span>(season, home_team, away_team, home_win, away_win) <span class="sc">%&gt;%</span></span>
-<span id="cb2-10"><a href="#cb2-10"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(home_team, away_team),</span>
-<span id="cb2-11"><a href="#cb2-11"></a>               <span class="at">names_to =</span> <span class="st">"location"</span>,</span>
-<span id="cb2-12"><a href="#cb2-12"></a>               <span class="at">values_to =</span> <span class="st">"team"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb2-13"><a href="#cb2-13"></a>  <span class="fu">mutate</span>(<span class="at">win =</span> <span class="fu">ifelse</span>(location <span class="sc">==</span> <span class="st">"home_team"</span>, home_win, away_win)) <span class="sc">%&gt;%</span></span>
-<span id="cb2-14"><a href="#cb2-14"></a>  <span class="fu">group_by</span>(season, team) <span class="sc">%&gt;%</span></span>
-<span id="cb2-15"><a href="#cb2-15"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb2-16"><a href="#cb2-16"></a>    <span class="at">wins =</span> <span class="fu">sum</span>(win, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb2-17"><a href="#cb2-17"></a>    <span class="at">win_pct =</span> wins <span class="sc">/</span> <span class="dv">17</span></span>
-<span id="cb2-18"><a href="#cb2-18"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb2-19"><a href="#cb2-19"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb2-20"><a href="#cb2-20"></a></span>
-<span id="cb2-21"><a href="#cb2-21"></a>team_summary <span class="ot">&lt;-</span> team_stats <span class="sc">%&gt;%</span></span>
-<span id="cb2-22"><a href="#cb2-22"></a>  <span class="fu">left_join</span>(team_wins, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"season"</span>, <span class="st">"team"</span>))</span>
-<span id="cb2-23"><a href="#cb2-23"></a></span>
-<span id="cb2-24"><a href="#cb2-24"></a><span class="fu">skim</span>(team_summary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
-<caption>Data summary</caption>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">Name</td>
-<td style="text-align: left;">team_summary</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Number of rows</td>
-<td style="text-align: left;">224</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Number of columns</td>
-<td style="text-align: left;">14</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">_______________________</td>
-<td style="text-align: left;"></td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Column type frequency:</td>
-<td style="text-align: left;"></td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">character</td>
-<td style="text-align: left;">1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">numeric</td>
-<td style="text-align: left;">13</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">________________________</td>
-<td style="text-align: left;"></td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Group variables</td>
-<td style="text-align: left;">None</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Variable type: character</strong></p>
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 19%">
-<col style="width: 13%">
-<col style="width: 19%">
-<col style="width: 5%">
-<col style="width: 5%">
-<col style="width: 8%">
-<col style="width: 12%">
-<col style="width: 15%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: left;">skim_variable</th>
-<th style="text-align: right;">n_missing</th>
-<th style="text-align: right;">complete_rate</th>
-<th style="text-align: right;">min</th>
-<th style="text-align: right;">max</th>
-<th style="text-align: right;">empty</th>
-<th style="text-align: right;">n_unique</th>
-<th style="text-align: right;">whitespace</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">team</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">2</td>
-<td style="text-align: right;">3</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">32</td>
-<td style="text-align: right;">0</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Variable type: numeric</strong></p>
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 15%">
-<col style="width: 9%">
-<col style="width: 13%">
-<col style="width: 7%">
-<col style="width: 6%">
-<col style="width: 7%">
-<col style="width: 7%">
-<col style="width: 7%">
-<col style="width: 7%">
-<col style="width: 7%">
-<col style="width: 5%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: left;">skim_variable</th>
-<th style="text-align: right;">n_missing</th>
-<th style="text-align: right;">complete_rate</th>
-<th style="text-align: right;">mean</th>
-<th style="text-align: right;">sd</th>
-<th style="text-align: right;">p0</th>
-<th style="text-align: right;">p25</th>
-<th style="text-align: right;">p50</th>
-<th style="text-align: right;">p75</th>
-<th style="text-align: right;">p100</th>
-<th style="text-align: left;">hist</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">season</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">2021.00</td>
-<td style="text-align: right;">2.00</td>
-<td style="text-align: right;">2018.00</td>
-<td style="text-align: right;">2019.00</td>
-<td style="text-align: right;">2021.00</td>
-<td style="text-align: right;">2023.00</td>
-<td style="text-align: right;">2024.00</td>
-<td style="text-align: left;">▇▃▃▃▇</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">games_played</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">17.34</td>
-<td style="text-align: right;">1.20</td>
-<td style="text-align: right;">16.00</td>
-<td style="text-align: right;">16.00</td>
-<td style="text-align: right;">17.00</td>
-<td style="text-align: right;">18.00</td>
-<td style="text-align: right;">21.00</td>
-<td style="text-align: left;">▇▂▁▁▁</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">plays</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">1438.69</td>
-<td style="text-align: right;">113.77</td>
-<td style="text-align: right;">1209.00</td>
-<td style="text-align: right;">1354.00</td>
-<td style="text-align: right;">1424.00</td>
-<td style="text-align: right;">1509.25</td>
-<td style="text-align: right;">1787.00</td>
-<td style="text-align: left;">▂▇▅▂▁</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">mean_epa</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">-0.01</td>
-<td style="text-align: right;">0.07</td>
-<td style="text-align: right;">-0.21</td>
-<td style="text-align: right;">-0.06</td>
-<td style="text-align: right;">-0.01</td>
-<td style="text-align: right;">0.04</td>
-<td style="text-align: right;">0.17</td>
-<td style="text-align: left;">▁▃▇▅▁</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">total_epa</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">-8.98</td>
-<td style="text-align: right;">99.97</td>
-<td style="text-align: right;">-258.80</td>
-<td style="text-align: right;">-77.13</td>
-<td style="text-align: right;">-7.92</td>
-<td style="text-align: right;">55.46</td>
-<td style="text-align: right;">260.26</td>
-<td style="text-align: left;">▂▆▇▅▁</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">success_rate</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">0.44</td>
-<td style="text-align: right;">0.03</td>
-<td style="text-align: right;">0.35</td>
-<td style="text-align: right;">0.41</td>
-<td style="text-align: right;">0.44</td>
-<td style="text-align: right;">0.46</td>
-<td style="text-align: right;">0.53</td>
-<td style="text-align: left;">▁▆▇▃▁</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">yards_per_play</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">4.23</td>
-<td style="text-align: right;">0.39</td>
-<td style="text-align: right;">3.20</td>
-<td style="text-align: right;">3.94</td>
-<td style="text-align: right;">4.24</td>
-<td style="text-align: right;">4.49</td>
-<td style="text-align: right;">5.30</td>
-<td style="text-align: left;">▁▆▇▅▁</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">turnovers</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">22.63</td>
-<td style="text-align: right;">5.42</td>
-<td style="text-align: right;">9.00</td>
-<td style="text-align: right;">19.00</td>
-<td style="text-align: right;">22.50</td>
-<td style="text-align: right;">26.00</td>
-<td style="text-align: right;">41.00</td>
-<td style="text-align: left;">▂▇▇▃▁</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">first_down_rate</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">0.25</td>
-<td style="text-align: right;">0.02</td>
-<td style="text-align: right;">0.19</td>
-<td style="text-align: right;">0.23</td>
-<td style="text-align: right;">0.25</td>
-<td style="text-align: right;">0.26</td>
-<td style="text-align: right;">0.29</td>
-<td style="text-align: left;">▁▆▇▆▃</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">pass_rate</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">0.49</td>
-<td style="text-align: right;">0.04</td>
-<td style="text-align: right;">0.39</td>
-<td style="text-align: right;">0.47</td>
-<td style="text-align: right;">0.49</td>
-<td style="text-align: right;">0.51</td>
-<td style="text-align: right;">0.57</td>
-<td style="text-align: left;">▂▃▇▇▃</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">penalty_yards</td>
-<td style="text-align: right;">0</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">879.59</td>
-<td style="text-align: right;">136.17</td>
-<td style="text-align: right;">478.00</td>
-<td style="text-align: right;">788.75</td>
-<td style="text-align: right;">876.00</td>
-<td style="text-align: right;">975.00</td>
-<td style="text-align: right;">1272.00</td>
-<td style="text-align: left;">▁▅▇▅▁</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">wins</td>
-<td style="text-align: right;">2</td>
-<td style="text-align: right;">0.99</td>
-<td style="text-align: right;">8.27</td>
-<td style="text-align: right;">3.14</td>
-<td style="text-align: right;">1.00</td>
-<td style="text-align: right;">6.00</td>
-<td style="text-align: right;">8.00</td>
-<td style="text-align: right;">11.00</td>
-<td style="text-align: right;">15.00</td>
-<td style="text-align: left;">▂▆▇▆▂</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">win_pct</td>
-<td style="text-align: right;">2</td>
-<td style="text-align: right;">0.99</td>
-<td style="text-align: right;">0.49</td>
-<td style="text-align: right;">0.18</td>
-<td style="text-align: right;">0.06</td>
-<td style="text-align: right;">0.35</td>
-<td style="text-align: right;">0.47</td>
-<td style="text-align: right;">0.65</td>
-<td style="text-align: right;">0.88</td>
-<td style="text-align: left;">▂▆▇▆▂</td>
-</tr>
-</tbody>
-</table>
-</div>
-<details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(team_summary))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb1-2"><a href="#cb1-2"></a>  <span class="at">Metric =</span> <span class="fu">c</span>(<span class="st">"Offensive EPA"</span>, <span class="st">"Defensive EPA"</span>, <span class="st">"Off Third Down"</span>, <span class="st">"Def Third Down"</span>),</span>
+<span id="cb1-3"><a href="#cb1-3"></a>  <span class="at">Correlation =</span> <span class="fu">c</span>(</span>
+<span id="cb1-4"><a href="#cb1-4"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>off_epa, team_data<span class="sc">$</span>wins),</span>
+<span id="cb1-5"><a href="#cb1-5"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>def_epa, team_data<span class="sc">$</span>wins),</span>
+<span id="cb1-6"><a href="#cb1-6"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>off_third_down, team_data<span class="sc">$</span>wins),</span>
+<span id="cb1-7"><a href="#cb1-7"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>def_third_down, team_data<span class="sc">$</span>wins)</span>
+<span id="cb1-8"><a href="#cb1-8"></a>  )</span>
+<span id="cb1-9"><a href="#cb1-9"></a>) <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(Correlation))) <span class="sc">%&gt;%</span> <span class="fu">print</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 4</code></pre>
+<pre><code>          Metric Correlation
+1  Offensive EPA   0.7104292
+2 Off Third Down   0.5978085
+3  Defensive EPA  -0.4581028
+4 Def Third Down  -0.2748840</code></pre>
 </div>
-</div>
-<div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="co">#Correlation Analysis</span></span>
-<span id="cb5-2"><a href="#cb5-2"></a>corr_data <span class="ot">&lt;-</span> team_summary <span class="sc">%&gt;%</span></span>
-<span id="cb5-3"><a href="#cb5-3"></a>  <span class="fu">select</span>(mean_epa, success_rate, yards_per_play, turnovers,</span>
-<span id="cb5-4"><a href="#cb5-4"></a>         first_down_rate, pass_rate, penalty_yards, win_pct)</span>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb3-2"><a href="#cb3-2"></a>  <span class="at">Metric =</span> <span class="fu">c</span>(<span class="st">"Turnover Margin"</span>, <span class="st">"Third Down Differential"</span>, <span class="st">"Red Zone Differential"</span>),</span>
+<span id="cb3-3"><a href="#cb3-3"></a>  <span class="at">Correlation =</span> <span class="fu">c</span>(</span>
+<span id="cb3-4"><a href="#cb3-4"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>turnover_margin, team_data<span class="sc">$</span>wins),</span>
+<span id="cb3-5"><a href="#cb3-5"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>third_down_diff, team_data<span class="sc">$</span>wins),</span>
+<span id="cb3-6"><a href="#cb3-6"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>red_zone_diff, team_data<span class="sc">$</span>wins)</span>
+<span id="cb3-7"><a href="#cb3-7"></a>  )</span>
+<span id="cb3-8"><a href="#cb3-8"></a>) <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(Correlation))) <span class="sc">%&gt;%</span> <span class="fu">print</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>                   Metric Correlation
+1 Third Down Differential   0.6650562
+2         Turnover Margin   0.6115285
+3   Red Zone Differential   0.3747346</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a>comparison_data <span class="ot">&lt;-</span> team_data <span class="sc">%&gt;%</span></span>
+<span id="cb5-2"><a href="#cb5-2"></a>  <span class="fu">select</span>(wins, off_epa, def_epa) <span class="sc">%&gt;%</span></span>
+<span id="cb5-3"><a href="#cb5-3"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(off_epa, def_epa), <span class="at">names_to =</span> <span class="st">"metric"</span>, <span class="at">values_to =</span> <span class="st">"epa"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb5-4"><a href="#cb5-4"></a>  <span class="fu">mutate</span>(<span class="at">metric =</span> <span class="fu">ifelse</span>(metric <span class="sc">==</span> <span class="st">"off_epa"</span>, <span class="st">"Offense"</span>, <span class="st">"Defense"</span>))</span>
 <span id="cb5-5"><a href="#cb5-5"></a></span>
-<span id="cb5-6"><a href="#cb5-6"></a>corr_matrix <span class="ot">&lt;-</span> <span class="fu">cor</span>(corr_data, <span class="at">use =</span> <span class="st">"pairwise.complete.obs"</span>)</span>
-<span id="cb5-7"><a href="#cb5-7"></a></span>
-<span id="cb5-8"><a href="#cb5-8"></a><span class="fu">ggcorrplot</span>(corr_matrix, <span class="at">lab =</span> <span class="cn">TRUE</span>, <span class="at">type =</span> <span class="st">"lower"</span>,</span>
-<span id="cb5-9"><a href="#cb5-9"></a>           <span class="at">title =</span> <span class="st">"Correlation Between Team Statistics and Win Percentage"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-6"><a href="#cb5-6"></a><span class="fu">ggplot</span>(comparison_data, <span class="fu">aes</span>(<span class="at">x =</span> epa, <span class="at">y =</span> wins, <span class="at">color =</span> metric)) <span class="sc">+</span></span>
+<span id="cb5-7"><a href="#cb5-7"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.3</span>, <span class="at">size =</span> <span class="fl">1.5</span>) <span class="sc">+</span></span>
+<span id="cb5-8"><a href="#cb5-8"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">linewidth =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb5-9"><a href="#cb5-9"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb5-10"><a href="#cb5-10"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Offense"</span> <span class="ot">=</span> <span class="st">"#2E7D32"</span>, <span class="st">"Defense"</span> <span class="ot">=</span> <span class="st">"#C62828"</span>),</span>
+<span id="cb5-11"><a href="#cb5-11"></a>    <span class="at">name =</span> <span class="st">""</span></span>
+<span id="cb5-12"><a href="#cb5-12"></a>  ) <span class="sc">+</span></span>
+<span id="cb5-13"><a href="#cb5-13"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Offensive vs Defensive EPA: Predictive Power"</span>,</span>
+<span id="cb5-14"><a href="#cb5-14"></a>       <span class="at">subtitle =</span> <span class="st">"Which side of the ball better predicts team success?"</span>,</span>
+<span id="cb5-15"><a href="#cb5-15"></a>       <span class="at">x =</span> <span class="st">"EPA per Play (Defense: lower is better)"</span>,</span>
+<span id="cb5-16"><a href="#cb5-16"></a>       <span class="at">y =</span> <span class="st">"Wins"</span>) <span class="sc">+</span></span>
+<span id="cb5-17"><a href="#cb5-17"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"top"</span>,</span>
+<span id="cb5-18"><a href="#cb5-18"></a>        <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="eda-member2_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="eda-member2_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
-</div>
-<div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># Plot 1</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="fu">ggplot</span>(team_summary, <span class="fu">aes</span>(<span class="at">x =</span> success_rate, <span class="at">y =</span> win_pct)) <span class="sc">+</span></span>
-<span id="cb6-3"><a href="#cb6-3"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
-<span id="cb6-4"><a href="#cb6-4"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"darkblue"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb6-5"><a href="#cb6-5"></a>  <span class="fu">labs</span>(</span>
-<span id="cb6-6"><a href="#cb6-6"></a>    <span class="at">title =</span> <span class="st">" PBP Success Rate vs. Win Percentage"</span>,</span>
-<span id="cb6-7"><a href="#cb6-7"></a>    <span class="at">x =</span> <span class="st">"Success Rate (per play)"</span>,</span>
-<span id="cb6-8"><a href="#cb6-8"></a>    <span class="at">y =</span> <span class="st">"Win Percentage"</span></span>
-<span id="cb6-9"><a href="#cb6-9"></a>  ) <span class="sc">+</span></span>
-<span id="cb6-10"><a href="#cb6-10"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>situational_data <span class="ot">&lt;-</span> team_data <span class="sc">%&gt;%</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>  <span class="fu">select</span>(wins, turnover_margin, third_down_diff, red_zone_diff) <span class="sc">%&gt;%</span></span>
+<span id="cb6-3"><a href="#cb6-3"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>wins, <span class="at">names_to =</span> <span class="st">"metric"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a>  <span class="fu">mutate</span>(<span class="at">metric =</span> <span class="fu">case_when</span>(</span>
+<span id="cb6-5"><a href="#cb6-5"></a>    metric <span class="sc">==</span> <span class="st">"turnover_margin"</span> <span class="sc">~</span> <span class="st">"Turnover Margin"</span>,</span>
+<span id="cb6-6"><a href="#cb6-6"></a>    metric <span class="sc">==</span> <span class="st">"third_down_diff"</span> <span class="sc">~</span> <span class="st">"Third Down Differential"</span>,</span>
+<span id="cb6-7"><a href="#cb6-7"></a>    metric <span class="sc">==</span> <span class="st">"red_zone_diff"</span> <span class="sc">~</span> <span class="st">"Red Zone Differential"</span></span>
+<span id="cb6-8"><a href="#cb6-8"></a>  ))</span>
+<span id="cb6-9"><a href="#cb6-9"></a></span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="fu">ggplot</span>(situational_data, <span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">y =</span> wins)) <span class="sc">+</span></span>
+<span id="cb6-11"><a href="#cb6-11"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>, <span class="at">size =</span> <span class="fl">1.5</span>, <span class="at">color =</span> <span class="st">"#1976D2"</span>) <span class="sc">+</span></span>
+<span id="cb6-12"><a href="#cb6-12"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">"#0D47A1"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb6-13"><a href="#cb6-13"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>metric, <span class="at">scales =</span> <span class="st">"free_x"</span>, <span class="at">ncol =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb6-14"><a href="#cb6-14"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Situational Factors and Team Success"</span>,</span>
+<span id="cb6-15"><a href="#cb6-15"></a>       <span class="at">subtitle =</span> <span class="st">"How turnovers, third downs, and red zone efficiency impact wins"</span>,</span>
+<span id="cb6-16"><a href="#cb6-16"></a>       <span class="at">x =</span> <span class="st">"Differential (Team - Opponent)"</span>,</span>
+<span id="cb6-17"><a href="#cb6-17"></a>       <span class="at">y =</span> <span class="st">"Wins"</span>) <span class="sc">+</span></span>
+<span id="cb6-18"><a href="#cb6-18"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>),</span>
+<span id="cb6-19"><a href="#cb6-19"></a>        <span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">11</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="eda-member2_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="eda-member2_files/figure-html/unnamed-chunk-2-2.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -1299,94 +989,145 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb7-2"><a href="#cb7-2"></a><span class="an">title:</span><span class="co"> "Member 2: Colin M"</span></span>
 <span id="cb7-3"><a href="#cb7-3"></a><span class="co">---</span></span>
 <span id="cb7-4"><a href="#cb7-4"></a></span>
-<span id="cb7-5"><a href="#cb7-5"></a>This exploratory data analysis aims to determine the most important statistics in determining an NFL team's success through correlation based coefficient selection. Using the nflreadR package, I was able to access a plethora of team stats and chose a handful that I, as a football player, thought might be important in determining success over a given season. First, I had to filter the dataset slightly to a handful of variables I thought would be useful and then clean that dataset to ensure all values worked in conjunction with one another in the final data frame. I then created a team_wins variable, as the nflreadR package did not have one already available. Finally, I created a correlation heat map to determine which of these possible predictors was most positively correlated with team success (wins in a given season). What I found is that EPA was most correlated with win percentage; But, this felt a little fake due to the fact that EPA (Expected Points Added) is a premade model that chooses statistics that have already been deemed important to team success. To remedy this, I chose the next most correlated predictor in team_success. For football familiar people, this is how often a team's offense can "stay ahead of the sticks," or in other words, can a team get 4 yards on first down, 3 yards on second down, and convert on 3rd and 4th down. I think the most significant finding throughout this process though was not the fact that a team's ability to move the ball is strongly correlated with win percentage, but instead that the majority of the strong positive correlation came from offensive metrics as opposed to defensive metrics. </span>
+<span id="cb7-5"><a href="#cb7-5"></a>This exploratory data analysis aims to find whether offensive or defensive efficiency is more important to team success and how performance in key game situations correlates with team success. Using nflreadR, which has a database of NFL statistics from the last 23 years, I created a 'wins' and 'win_pct' variable by creating an inequality function with home score and away score for each and team and then dividing that number by the total number of games in a football season. I then looked at EPA (Expected Points Added) for Offense and Defense and determined the correlation between each side's EPA and win percentage to find that neither offense nor defense is more important for team success; Rather, they are equally important. The next item I wanted to look at was 3 metrics that are usually looked at as "key indicators of success:" Redzone efficiency, third down differential, and turnover margin. Redzone efficiency, or how often you score points when inside the 25 yard line, turned out to be the least correlated with win percentage with a correlation coefficient of only 0.37. Third down differential, a stat I created that weighs how often a team converts 3rd downs on offense while stopping their opponent, and turnover margin were similarly high in correlation with coefficients around 0.65, showing that improvement of performance in these situational metrics would correlate with more wins over the course of a season. </span>
 <span id="cb7-6"><a href="#cb7-6"></a></span>
-<span id="cb7-9"><a href="#cb7-9"></a><span class="in">```{r}</span></span>
-<span id="cb7-10"><a href="#cb7-10"></a><span class="fu">library</span>(nflreadr)</span>
-<span id="cb7-11"><a href="#cb7-11"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb7-12"><a href="#cb7-12"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb7-13"><a href="#cb7-13"></a><span class="fu">library</span>(tidyr)</span>
-<span id="cb7-14"><a href="#cb7-14"></a><span class="fu">library</span>(janitor)</span>
-<span id="cb7-15"><a href="#cb7-15"></a><span class="fu">library</span>(ggcorrplot)</span>
-<span id="cb7-16"><a href="#cb7-16"></a><span class="fu">library</span>(scales)</span>
-<span id="cb7-17"><a href="#cb7-17"></a><span class="fu">library</span>(skimr)</span>
+<span id="cb7-7"><a href="#cb7-7"></a></span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="in">```{r include = FALSE}</span></span>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="in"># NFL EDA: Offensive vs Defensive Predictors of Success (2018-2023)</span></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="in"># Examining which metrics best predict wins and the role of situational factors</span></span>
+<span id="cb7-11"><a href="#cb7-11"></a></span>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="in">library(nflreadr)</span></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="in">library(dplyr)</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a><span class="in">library(ggplot2)</span></span>
+<span id="cb7-15"><a href="#cb7-15"></a><span class="in">library(tidyr)</span></span>
+<span id="cb7-16"><a href="#cb7-16"></a></span>
+<span id="cb7-17"><a href="#cb7-17"></a><span class="in">theme_set(theme_minimal())</span></span>
 <span id="cb7-18"><a href="#cb7-18"></a></span>
-<span id="cb7-19"><a href="#cb7-19"></a>pbp <span class="ot">&lt;-</span> <span class="fu">load_pbp</span>(<span class="dv">2018</span><span class="sc">:</span><span class="dv">2024</span>)</span>
-<span id="cb7-20"><a href="#cb7-20"></a></span>
-<span id="cb7-21"><a href="#cb7-21"></a>team_stats <span class="ot">&lt;-</span> pbp <span class="sc">%&gt;%</span></span>
-<span id="cb7-22"><a href="#cb7-22"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(posteam)) <span class="sc">%&gt;%</span></span>
-<span id="cb7-23"><a href="#cb7-23"></a>  <span class="fu">group_by</span>(season, posteam) <span class="sc">%&gt;%</span></span>
-<span id="cb7-24"><a href="#cb7-24"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb7-25"><a href="#cb7-25"></a>    <span class="at">games_played     =</span> <span class="fu">n_distinct</span>(game_id),</span>
-<span id="cb7-26"><a href="#cb7-26"></a>    <span class="at">plays            =</span> <span class="fu">n</span>(),</span>
-<span id="cb7-27"><a href="#cb7-27"></a>    <span class="at">mean_epa         =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb7-28"><a href="#cb7-28"></a>    <span class="at">total_epa        =</span> <span class="fu">sum</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb7-29"><a href="#cb7-29"></a>    <span class="at">success_rate     =</span> <span class="fu">mean</span>(success, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb7-30"><a href="#cb7-30"></a>    <span class="at">yards_per_play   =</span> <span class="fu">mean</span>(yards_gained, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb7-31"><a href="#cb7-31"></a>    <span class="at">turnovers        =</span> <span class="fu">sum</span>(interception <span class="sc">+</span> fumble_lost, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb7-32"><a href="#cb7-32"></a>    <span class="at">first_down_rate  =</span> <span class="fu">mean</span>(first_down <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb7-33"><a href="#cb7-33"></a>    <span class="at">pass_rate        =</span> <span class="fu">mean</span>(pass <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb7-34"><a href="#cb7-34"></a>    <span class="at">penalty_yards    =</span> <span class="fu">sum</span>(penalty_yards, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb7-35"><a href="#cb7-35"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb7-36"><a href="#cb7-36"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb7-37"><a href="#cb7-37"></a>  <span class="fu">rename</span>(<span class="at">team =</span> posteam) <span class="sc">%&gt;%</span></span>
-<span id="cb7-38"><a href="#cb7-38"></a>  <span class="fu">clean_names</span>()</span>
-<span id="cb7-39"><a href="#cb7-39"></a><span class="in">```</span></span>
-<span id="cb7-40"><a href="#cb7-40"></a></span>
-<span id="cb7-43"><a href="#cb7-43"></a><span class="in">```{r}</span></span>
-<span id="cb7-44"><a href="#cb7-44"></a>games <span class="ot">&lt;-</span> nflreadr<span class="sc">::</span><span class="fu">load_schedules</span>(<span class="dv">2018</span><span class="sc">:</span><span class="dv">2024</span>)</span>
+<span id="cb7-19"><a href="#cb7-19"></a><span class="in">pbp &lt;- load_pbp(2018:2023)</span></span>
+<span id="cb7-20"><a href="#cb7-20"></a><span class="in">games &lt;- load_schedules(2018:2023)</span></span>
+<span id="cb7-21"><a href="#cb7-21"></a></span>
+<span id="cb7-22"><a href="#cb7-22"></a><span class="in">games_clean &lt;- games %&gt;%</span></span>
+<span id="cb7-23"><a href="#cb7-23"></a><span class="in">  filter(game_type == "REG") %&gt;%</span></span>
+<span id="cb7-24"><a href="#cb7-24"></a><span class="in">  select(game_id, season, home_team, away_team, home_score, away_score)</span></span>
+<span id="cb7-25"><a href="#cb7-25"></a></span>
+<span id="cb7-26"><a href="#cb7-26"></a><span class="in">team_games &lt;- games_clean %&gt;%</span></span>
+<span id="cb7-27"><a href="#cb7-27"></a><span class="in">  mutate(</span></span>
+<span id="cb7-28"><a href="#cb7-28"></a><span class="in">    home_win = as.numeric(home_score &gt; away_score),</span></span>
+<span id="cb7-29"><a href="#cb7-29"></a><span class="in">    away_win = as.numeric(away_score &gt; home_score)</span></span>
+<span id="cb7-30"><a href="#cb7-30"></a><span class="in">  ) %&gt;%</span></span>
+<span id="cb7-31"><a href="#cb7-31"></a><span class="in">  tidyr::pivot_longer(</span></span>
+<span id="cb7-32"><a href="#cb7-32"></a><span class="in">    cols = c(home_team, away_team),</span></span>
+<span id="cb7-33"><a href="#cb7-33"></a><span class="in">    names_to = "location",</span></span>
+<span id="cb7-34"><a href="#cb7-34"></a><span class="in">    values_to = "team"</span></span>
+<span id="cb7-35"><a href="#cb7-35"></a><span class="in">  ) %&gt;%</span></span>
+<span id="cb7-36"><a href="#cb7-36"></a><span class="in">  mutate(</span></span>
+<span id="cb7-37"><a href="#cb7-37"></a><span class="in">    win = case_when(</span></span>
+<span id="cb7-38"><a href="#cb7-38"></a><span class="in">      location == "home_team" &amp; home_win == 1 ~ 1,</span></span>
+<span id="cb7-39"><a href="#cb7-39"></a><span class="in">      location == "away_team" &amp; away_win == 1 ~ 1,</span></span>
+<span id="cb7-40"><a href="#cb7-40"></a><span class="in">      TRUE ~ 0</span></span>
+<span id="cb7-41"><a href="#cb7-41"></a><span class="in">    )</span></span>
+<span id="cb7-42"><a href="#cb7-42"></a><span class="in">  ) %&gt;%</span></span>
+<span id="cb7-43"><a href="#cb7-43"></a><span class="in">  group_by(team, season) %&gt;%</span></span>
+<span id="cb7-44"><a href="#cb7-44"></a><span class="in">  summarise(wins = sum(win), games = n(), .groups = "drop")</span></span>
 <span id="cb7-45"><a href="#cb7-45"></a></span>
-<span id="cb7-46"><a href="#cb7-46"></a>team_wins <span class="ot">&lt;-</span> games <span class="sc">%&gt;%</span></span>
-<span id="cb7-47"><a href="#cb7-47"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(home_team), game_type <span class="sc">==</span> <span class="st">"REG"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb7-48"><a href="#cb7-48"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb7-49"><a href="#cb7-49"></a>    <span class="at">home_win =</span> <span class="fu">ifelse</span>(home_score <span class="sc">&gt;</span> away_score, <span class="dv">1</span>, <span class="dv">0</span>),</span>
-<span id="cb7-50"><a href="#cb7-50"></a>    <span class="at">away_win =</span> <span class="fu">ifelse</span>(away_score <span class="sc">&gt;</span> home_score, <span class="dv">1</span>, <span class="dv">0</span>)</span>
-<span id="cb7-51"><a href="#cb7-51"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb7-52"><a href="#cb7-52"></a>  <span class="fu">select</span>(season, home_team, away_team, home_win, away_win) <span class="sc">%&gt;%</span></span>
-<span id="cb7-53"><a href="#cb7-53"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(home_team, away_team),</span>
-<span id="cb7-54"><a href="#cb7-54"></a>               <span class="at">names_to =</span> <span class="st">"location"</span>,</span>
-<span id="cb7-55"><a href="#cb7-55"></a>               <span class="at">values_to =</span> <span class="st">"team"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb7-56"><a href="#cb7-56"></a>  <span class="fu">mutate</span>(<span class="at">win =</span> <span class="fu">ifelse</span>(location <span class="sc">==</span> <span class="st">"home_team"</span>, home_win, away_win)) <span class="sc">%&gt;%</span></span>
-<span id="cb7-57"><a href="#cb7-57"></a>  <span class="fu">group_by</span>(season, team) <span class="sc">%&gt;%</span></span>
-<span id="cb7-58"><a href="#cb7-58"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb7-59"><a href="#cb7-59"></a>    <span class="at">wins =</span> <span class="fu">sum</span>(win, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb7-60"><a href="#cb7-60"></a>    <span class="at">win_pct =</span> wins <span class="sc">/</span> <span class="dv">17</span></span>
-<span id="cb7-61"><a href="#cb7-61"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb7-62"><a href="#cb7-62"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb7-63"><a href="#cb7-63"></a></span>
-<span id="cb7-64"><a href="#cb7-64"></a>team_summary <span class="ot">&lt;-</span> team_stats <span class="sc">%&gt;%</span></span>
-<span id="cb7-65"><a href="#cb7-65"></a>  <span class="fu">left_join</span>(team_wins, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"season"</span>, <span class="st">"team"</span>))</span>
-<span id="cb7-66"><a href="#cb7-66"></a></span>
-<span id="cb7-67"><a href="#cb7-67"></a><span class="fu">skim</span>(team_summary)</span>
-<span id="cb7-68"><a href="#cb7-68"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(team_summary))</span>
-<span id="cb7-69"><a href="#cb7-69"></a><span class="in">```</span></span>
-<span id="cb7-70"><a href="#cb7-70"></a></span>
-<span id="cb7-73"><a href="#cb7-73"></a><span class="in">```{r}</span></span>
-<span id="cb7-74"><a href="#cb7-74"></a><span class="co">#Correlation Analysis</span></span>
-<span id="cb7-75"><a href="#cb7-75"></a>corr_data <span class="ot">&lt;-</span> team_summary <span class="sc">%&gt;%</span></span>
-<span id="cb7-76"><a href="#cb7-76"></a>  <span class="fu">select</span>(mean_epa, success_rate, yards_per_play, turnovers,</span>
-<span id="cb7-77"><a href="#cb7-77"></a>         first_down_rate, pass_rate, penalty_yards, win_pct)</span>
-<span id="cb7-78"><a href="#cb7-78"></a></span>
-<span id="cb7-79"><a href="#cb7-79"></a>corr_matrix <span class="ot">&lt;-</span> <span class="fu">cor</span>(corr_data, <span class="at">use =</span> <span class="st">"pairwise.complete.obs"</span>)</span>
-<span id="cb7-80"><a href="#cb7-80"></a></span>
-<span id="cb7-81"><a href="#cb7-81"></a><span class="fu">ggcorrplot</span>(corr_matrix, <span class="at">lab =</span> <span class="cn">TRUE</span>, <span class="at">type =</span> <span class="st">"lower"</span>,</span>
-<span id="cb7-82"><a href="#cb7-82"></a>           <span class="at">title =</span> <span class="st">"Correlation Between Team Statistics and Win Percentage"</span>)</span>
-<span id="cb7-83"><a href="#cb7-83"></a><span class="in">```</span></span>
-<span id="cb7-84"><a href="#cb7-84"></a></span>
-<span id="cb7-87"><a href="#cb7-87"></a><span class="in">```{r}</span></span>
-<span id="cb7-88"><a href="#cb7-88"></a><span class="co"># Plot 1</span></span>
-<span id="cb7-89"><a href="#cb7-89"></a><span class="fu">ggplot</span>(team_summary, <span class="fu">aes</span>(<span class="at">x =</span> success_rate, <span class="at">y =</span> win_pct)) <span class="sc">+</span></span>
-<span id="cb7-90"><a href="#cb7-90"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
-<span id="cb7-91"><a href="#cb7-91"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"darkblue"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb7-92"><a href="#cb7-92"></a>  <span class="fu">labs</span>(</span>
-<span id="cb7-93"><a href="#cb7-93"></a>    <span class="at">title =</span> <span class="st">" PBP Success Rate vs. Win Percentage"</span>,</span>
-<span id="cb7-94"><a href="#cb7-94"></a>    <span class="at">x =</span> <span class="st">"Success Rate (per play)"</span>,</span>
-<span id="cb7-95"><a href="#cb7-95"></a>    <span class="at">y =</span> <span class="st">"Win Percentage"</span></span>
-<span id="cb7-96"><a href="#cb7-96"></a>  ) <span class="sc">+</span></span>
-<span id="cb7-97"><a href="#cb7-97"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb7-98"><a href="#cb7-98"></a><span class="in">```</span></span>
-<span id="cb7-99"><a href="#cb7-99"></a></span>
-<span id="cb7-100"><a href="#cb7-100"></a></span>
+<span id="cb7-46"><a href="#cb7-46"></a><span class="in">offense_stats &lt;- pbp %&gt;%</span></span>
+<span id="cb7-47"><a href="#cb7-47"></a><span class="in">  filter(!is.na(posteam), !is.na(epa)) %&gt;%</span></span>
+<span id="cb7-48"><a href="#cb7-48"></a><span class="in">  group_by(season, team = posteam) %&gt;%</span></span>
+<span id="cb7-49"><a href="#cb7-49"></a><span class="in">  summarise(</span></span>
+<span id="cb7-50"><a href="#cb7-50"></a><span class="in">    off_epa = mean(epa, na.rm = TRUE),</span></span>
+<span id="cb7-51"><a href="#cb7-51"></a><span class="in">    turnovers = sum(interception, na.rm = TRUE) + sum(fumble_lost, na.rm = TRUE),</span></span>
+<span id="cb7-52"><a href="#cb7-52"></a><span class="in">    off_third_down = sum(third_down_converted, na.rm = TRUE) / </span></span>
+<span id="cb7-53"><a href="#cb7-53"></a><span class="in">                     (sum(third_down_converted, na.rm = TRUE) + sum(third_down_failed, na.rm = TRUE)),</span></span>
+<span id="cb7-54"><a href="#cb7-54"></a><span class="in">    off_red_zone = sum(touchdown[yardline_100 &lt;= 20], na.rm = TRUE) / </span></span>
+<span id="cb7-55"><a href="#cb7-55"></a><span class="in">                   sum(yardline_100 &lt;= 20, na.rm = TRUE),</span></span>
+<span id="cb7-56"><a href="#cb7-56"></a><span class="in">    .groups = "drop"</span></span>
+<span id="cb7-57"><a href="#cb7-57"></a><span class="in">  )</span></span>
+<span id="cb7-58"><a href="#cb7-58"></a></span>
+<span id="cb7-59"><a href="#cb7-59"></a><span class="in">defense_stats &lt;- pbp %&gt;%</span></span>
+<span id="cb7-60"><a href="#cb7-60"></a><span class="in">  filter(!is.na(defteam), !is.na(epa)) %&gt;%</span></span>
+<span id="cb7-61"><a href="#cb7-61"></a><span class="in">  group_by(season, team = defteam) %&gt;%</span></span>
+<span id="cb7-62"><a href="#cb7-62"></a><span class="in">  summarise(</span></span>
+<span id="cb7-63"><a href="#cb7-63"></a><span class="in">    def_epa = mean(epa, na.rm = TRUE),</span></span>
+<span id="cb7-64"><a href="#cb7-64"></a><span class="in">    takeaways = sum(interception, na.rm = TRUE) + sum(fumble_lost, na.rm = TRUE),</span></span>
+<span id="cb7-65"><a href="#cb7-65"></a><span class="in">    def_third_down = sum(third_down_converted, na.rm = TRUE) / </span></span>
+<span id="cb7-66"><a href="#cb7-66"></a><span class="in">                     (sum(third_down_converted, na.rm = TRUE) + sum(third_down_failed, na.rm = TRUE)),</span></span>
+<span id="cb7-67"><a href="#cb7-67"></a><span class="in">    def_red_zone = sum(touchdown[yardline_100 &lt;= 20], na.rm = TRUE) / </span></span>
+<span id="cb7-68"><a href="#cb7-68"></a><span class="in">                   sum(yardline_100 &lt;= 20, na.rm = TRUE),</span></span>
+<span id="cb7-69"><a href="#cb7-69"></a><span class="in">    .groups = "drop"</span></span>
+<span id="cb7-70"><a href="#cb7-70"></a><span class="in">  )</span></span>
+<span id="cb7-71"><a href="#cb7-71"></a></span>
+<span id="cb7-72"><a href="#cb7-72"></a><span class="in">team_data &lt;- team_games %&gt;%</span></span>
+<span id="cb7-73"><a href="#cb7-73"></a><span class="in">  left_join(offense_stats, by = c("team", "season")) %&gt;%</span></span>
+<span id="cb7-74"><a href="#cb7-74"></a><span class="in">  left_join(defense_stats, by = c("team", "season")) %&gt;%</span></span>
+<span id="cb7-75"><a href="#cb7-75"></a><span class="in">  mutate(</span></span>
+<span id="cb7-76"><a href="#cb7-76"></a><span class="in">    turnover_margin = takeaways - turnovers,</span></span>
+<span id="cb7-77"><a href="#cb7-77"></a><span class="in">    third_down_diff = off_third_down - def_third_down,</span></span>
+<span id="cb7-78"><a href="#cb7-78"></a><span class="in">    red_zone_diff = off_red_zone - def_red_zone</span></span>
+<span id="cb7-79"><a href="#cb7-79"></a><span class="in">  ) %&gt;%</span></span>
+<span id="cb7-80"><a href="#cb7-80"></a><span class="in">  filter(!is.na(off_epa), !is.na(def_epa))</span></span>
+<span id="cb7-81"><a href="#cb7-81"></a><span class="in">```</span></span>
+<span id="cb7-82"><a href="#cb7-82"></a></span>
+<span id="cb7-83"><a href="#cb7-83"></a></span>
+<span id="cb7-86"><a href="#cb7-86"></a><span class="in">```{r}</span></span>
+<span id="cb7-87"><a href="#cb7-87"></a><span class="fu">data.frame</span>(</span>
+<span id="cb7-88"><a href="#cb7-88"></a>  <span class="at">Metric =</span> <span class="fu">c</span>(<span class="st">"Offensive EPA"</span>, <span class="st">"Defensive EPA"</span>, <span class="st">"Off Third Down"</span>, <span class="st">"Def Third Down"</span>),</span>
+<span id="cb7-89"><a href="#cb7-89"></a>  <span class="at">Correlation =</span> <span class="fu">c</span>(</span>
+<span id="cb7-90"><a href="#cb7-90"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>off_epa, team_data<span class="sc">$</span>wins),</span>
+<span id="cb7-91"><a href="#cb7-91"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>def_epa, team_data<span class="sc">$</span>wins),</span>
+<span id="cb7-92"><a href="#cb7-92"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>off_third_down, team_data<span class="sc">$</span>wins),</span>
+<span id="cb7-93"><a href="#cb7-93"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>def_third_down, team_data<span class="sc">$</span>wins)</span>
+<span id="cb7-94"><a href="#cb7-94"></a>  )</span>
+<span id="cb7-95"><a href="#cb7-95"></a>) <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(Correlation))) <span class="sc">%&gt;%</span> <span class="fu">print</span>()</span>
+<span id="cb7-96"><a href="#cb7-96"></a></span>
+<span id="cb7-97"><a href="#cb7-97"></a><span class="fu">data.frame</span>(</span>
+<span id="cb7-98"><a href="#cb7-98"></a>  <span class="at">Metric =</span> <span class="fu">c</span>(<span class="st">"Turnover Margin"</span>, <span class="st">"Third Down Differential"</span>, <span class="st">"Red Zone Differential"</span>),</span>
+<span id="cb7-99"><a href="#cb7-99"></a>  <span class="at">Correlation =</span> <span class="fu">c</span>(</span>
+<span id="cb7-100"><a href="#cb7-100"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>turnover_margin, team_data<span class="sc">$</span>wins),</span>
+<span id="cb7-101"><a href="#cb7-101"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>third_down_diff, team_data<span class="sc">$</span>wins),</span>
+<span id="cb7-102"><a href="#cb7-102"></a>    <span class="fu">cor</span>(team_data<span class="sc">$</span>red_zone_diff, team_data<span class="sc">$</span>wins)</span>
+<span id="cb7-103"><a href="#cb7-103"></a>  )</span>
+<span id="cb7-104"><a href="#cb7-104"></a>) <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(Correlation))) <span class="sc">%&gt;%</span> <span class="fu">print</span>()</span>
+<span id="cb7-105"><a href="#cb7-105"></a></span>
+<span id="cb7-106"><a href="#cb7-106"></a>comparison_data <span class="ot">&lt;-</span> team_data <span class="sc">%&gt;%</span></span>
+<span id="cb7-107"><a href="#cb7-107"></a>  <span class="fu">select</span>(wins, off_epa, def_epa) <span class="sc">%&gt;%</span></span>
+<span id="cb7-108"><a href="#cb7-108"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(off_epa, def_epa), <span class="at">names_to =</span> <span class="st">"metric"</span>, <span class="at">values_to =</span> <span class="st">"epa"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-109"><a href="#cb7-109"></a>  <span class="fu">mutate</span>(<span class="at">metric =</span> <span class="fu">ifelse</span>(metric <span class="sc">==</span> <span class="st">"off_epa"</span>, <span class="st">"Offense"</span>, <span class="st">"Defense"</span>))</span>
+<span id="cb7-110"><a href="#cb7-110"></a></span>
+<span id="cb7-111"><a href="#cb7-111"></a><span class="fu">ggplot</span>(comparison_data, <span class="fu">aes</span>(<span class="at">x =</span> epa, <span class="at">y =</span> wins, <span class="at">color =</span> metric)) <span class="sc">+</span></span>
+<span id="cb7-112"><a href="#cb7-112"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.3</span>, <span class="at">size =</span> <span class="fl">1.5</span>) <span class="sc">+</span></span>
+<span id="cb7-113"><a href="#cb7-113"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">linewidth =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb7-114"><a href="#cb7-114"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb7-115"><a href="#cb7-115"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Offense"</span> <span class="ot">=</span> <span class="st">"#2E7D32"</span>, <span class="st">"Defense"</span> <span class="ot">=</span> <span class="st">"#C62828"</span>),</span>
+<span id="cb7-116"><a href="#cb7-116"></a>    <span class="at">name =</span> <span class="st">""</span></span>
+<span id="cb7-117"><a href="#cb7-117"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-118"><a href="#cb7-118"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Offensive vs Defensive EPA: Predictive Power"</span>,</span>
+<span id="cb7-119"><a href="#cb7-119"></a>       <span class="at">subtitle =</span> <span class="st">"Which side of the ball better predicts team success?"</span>,</span>
+<span id="cb7-120"><a href="#cb7-120"></a>       <span class="at">x =</span> <span class="st">"EPA per Play (Defense: lower is better)"</span>,</span>
+<span id="cb7-121"><a href="#cb7-121"></a>       <span class="at">y =</span> <span class="st">"Wins"</span>) <span class="sc">+</span></span>
+<span id="cb7-122"><a href="#cb7-122"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"top"</span>,</span>
+<span id="cb7-123"><a href="#cb7-123"></a>        <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>))</span>
+<span id="cb7-124"><a href="#cb7-124"></a></span>
+<span id="cb7-125"><a href="#cb7-125"></a>situational_data <span class="ot">&lt;-</span> team_data <span class="sc">%&gt;%</span></span>
+<span id="cb7-126"><a href="#cb7-126"></a>  <span class="fu">select</span>(wins, turnover_margin, third_down_diff, red_zone_diff) <span class="sc">%&gt;%</span></span>
+<span id="cb7-127"><a href="#cb7-127"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>wins, <span class="at">names_to =</span> <span class="st">"metric"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-128"><a href="#cb7-128"></a>  <span class="fu">mutate</span>(<span class="at">metric =</span> <span class="fu">case_when</span>(</span>
+<span id="cb7-129"><a href="#cb7-129"></a>    metric <span class="sc">==</span> <span class="st">"turnover_margin"</span> <span class="sc">~</span> <span class="st">"Turnover Margin"</span>,</span>
+<span id="cb7-130"><a href="#cb7-130"></a>    metric <span class="sc">==</span> <span class="st">"third_down_diff"</span> <span class="sc">~</span> <span class="st">"Third Down Differential"</span>,</span>
+<span id="cb7-131"><a href="#cb7-131"></a>    metric <span class="sc">==</span> <span class="st">"red_zone_diff"</span> <span class="sc">~</span> <span class="st">"Red Zone Differential"</span></span>
+<span id="cb7-132"><a href="#cb7-132"></a>  ))</span>
+<span id="cb7-133"><a href="#cb7-133"></a></span>
+<span id="cb7-134"><a href="#cb7-134"></a><span class="fu">ggplot</span>(situational_data, <span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">y =</span> wins)) <span class="sc">+</span></span>
+<span id="cb7-135"><a href="#cb7-135"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>, <span class="at">size =</span> <span class="fl">1.5</span>, <span class="at">color =</span> <span class="st">"#1976D2"</span>) <span class="sc">+</span></span>
+<span id="cb7-136"><a href="#cb7-136"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">"#0D47A1"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb7-137"><a href="#cb7-137"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>metric, <span class="at">scales =</span> <span class="st">"free_x"</span>, <span class="at">ncol =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb7-138"><a href="#cb7-138"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Situational Factors and Team Success"</span>,</span>
+<span id="cb7-139"><a href="#cb7-139"></a>       <span class="at">subtitle =</span> <span class="st">"How turnovers, third downs, and red zone efficiency impact wins"</span>,</span>
+<span id="cb7-140"><a href="#cb7-140"></a>       <span class="at">x =</span> <span class="st">"Differential (Team - Opponent)"</span>,</span>
+<span id="cb7-141"><a href="#cb7-141"></a>       <span class="at">y =</span> <span class="st">"Wins"</span>) <span class="sc">+</span></span>
+<span id="cb7-142"><a href="#cb7-142"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">14</span>),</span>
+<span id="cb7-143"><a href="#cb7-143"></a>        <span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">11</span>))</span>
+<span id="cb7-144"><a href="#cb7-144"></a><span class="in">```</span></span>
+<span id="cb7-145"><a href="#cb7-145"></a></span>
 </code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
