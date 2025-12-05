@@ -2,7 +2,11 @@
 title: "Introduction"
 ---
 
-This project examines which NFL team statistics are most strongly associated with overall success, measured by win–loss record. Using team-level data from the nflreadR and nflfastR packages (2018–2024), we analyze offensive, defensive, and situational performance metrics—including yards gained, turnovers, third-down efficiency, and red-zone performance—to determine which factors best predict winning. Our goal is to provide clear, data-driven insights into the key statistical drivers of team success in American football.
+  &nbsp;&nbsp;&nbsp;&nbspAs football players at Macalester, Christian and I wondered why it seems like some football teams just can’t improve. Is it the players? The coaches? The general management? We set out to determine which team metrics were most affiliated with a team’s success over the course of a given NFL football season to find out whether this was a problem of performance or something deeper rooted. 
+
+  &nbsp;&nbsp;&nbsp;&nbspFirst, we had to determine the metrics we would herald as the “most important” statistic for winning football games. Once we had narrowed our components down to just EPA, third downs, turnovers, and redzone differential, we compared them to a team’s total wins on a season to produce correlation coefficients for each statistic as they relate to wins. A common saying in football that we looked to verify is that “Defense wins championships.” As our findings show, empirically, there is almost no difference in correlation between wins and offense and wins and defense. In fact, offensive efficiency is actually slightly more correlated with wins than defensive efficiency. Somewhat surprisingly, performance in game situations like third downs and turnover margin is more important to team success than redzone differential. 
+
+  &nbsp;&nbsp;&nbsp;&nbspIn summary, if coaches focused on offensive efficiency through metrics like down success and emphasized performance in key metrics instead of in big plays and systems, their teams would theoretically have more success over the course of a season. It’s important to note that these are averages, and that in any given football game defense can be more important than offense and vice versa. Additionally, the game has evolved even in the last 5 years in such a manner that offensive players are more protected than defensive players, and general consensus around the NFL is that the league favors offense.
 
 
 
