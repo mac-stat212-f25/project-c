@@ -1,5 +1,144 @@
 ---
-title: "Member 2 First Name & Last Name Initial"
+title: "Member 2: Colin M"
 ---
 
-Your exploratory data analysis of the team datasets go here.
+This exploratory data analysis aims to find whether offensive or defensive efficiency is more important to team success and how performance in key game situations correlates with team success. Using nflreadR, which has a database of NFL statistics from the last 23 years, I created a 'wins' and 'win_pct' variable by creating an inequality function with home score and away score for each and team and then dividing that number by the total number of games in a football season. I then looked at EPA (Expected Points Added) for Offense and Defense and determined the correlation between each side's EPA and win percentage to find that neither offense nor defense is more important for team success; Rather, they are equally important. The next item I wanted to look at was 3 metrics that are usually looked at as "key indicators of success:" Redzone efficiency, third down differential, and turnover margin. Redzone efficiency, or how often you score points when inside the 25 yard line, turned out to be the least correlated with win percentage with a correlation coefficient of only 0.37. Third down differential, a stat I created that weighs how often a team converts 3rd downs on offense while stopping their opponent, and turnover margin were similarly high in correlation with coefficients around 0.65, showing that improvement of performance in these situational metrics would correlate with more wins over the course of a season. 
+
+
+```{r include = FALSE}
+# NFL EDA: Offensive vs Defensive Predictors of Success (2018-2023)
+# Examining which metrics best predict wins and the role of situational factors
+
+library(nflreadr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+theme_set(theme_minimal())
+
+pbp <- load_pbp(2018:2023)
+games <- load_schedules(2018:2023)
+
+games_clean <- games %>%
+  filter(game_type == "REG") %>%
+  select(game_id, season, home_team, away_team, home_score, away_score)
+
+team_games <- games_clean %>%
+  mutate(
+    home_win = as.numeric(home_score > away_score),
+    away_win = as.numeric(away_score > home_score)
+  ) %>%
+  tidyr::pivot_longer(
+    cols = c(home_team, away_team),
+    names_to = "location",
+    values_to = "team"
+  ) %>%
+  mutate(
+    win = case_when(
+      location == "home_team" & home_win == 1 ~ 1,
+      location == "away_team" & away_win == 1 ~ 1,
+      TRUE ~ 0
+    )
+  ) %>%
+  group_by(team, season) %>%
+  summarise(wins = sum(win), games = n(), .groups = "drop")
+
+offense_stats <- pbp %>%
+  filter(!is.na(posteam), !is.na(epa)) %>%
+  group_by(season, team = posteam) %>%
+  summarise(
+    off_epa = mean(epa, na.rm = TRUE),
+    turnovers = sum(interception, na.rm = TRUE) + sum(fumble_lost, na.rm = TRUE),
+    off_third_down = sum(third_down_converted, na.rm = TRUE) / 
+                     (sum(third_down_converted, na.rm = TRUE) + sum(third_down_failed, na.rm = TRUE)),
+    off_red_zone = sum(touchdown[yardline_100 <= 20], na.rm = TRUE) / 
+                   sum(yardline_100 <= 20, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+defense_stats <- pbp %>%
+  filter(!is.na(defteam), !is.na(epa)) %>%
+  group_by(season, team = defteam) %>%
+  summarise(
+    def_epa = mean(epa, na.rm = TRUE),
+    takeaways = sum(interception, na.rm = TRUE) + sum(fumble_lost, na.rm = TRUE),
+    def_third_down = sum(third_down_converted, na.rm = TRUE) / 
+                     (sum(third_down_converted, na.rm = TRUE) + sum(third_down_failed, na.rm = TRUE)),
+    def_red_zone = sum(touchdown[yardline_100 <= 20], na.rm = TRUE) / 
+                   sum(yardline_100 <= 20, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+team_data <- team_games %>%
+  left_join(offense_stats, by = c("team", "season")) %>%
+  left_join(defense_stats, by = c("team", "season")) %>%
+  mutate(
+    turnover_margin = takeaways - turnovers,
+    third_down_diff = off_third_down - def_third_down,
+    red_zone_diff = off_red_zone - def_red_zone
+  ) %>%
+  filter(!is.na(off_epa), !is.na(def_epa))
+```
+
+
+```{r}
+data.frame(
+  Metric = c("Offensive EPA", "Defensive EPA", "Off Third Down", "Def Third Down"),
+  Correlation = c(
+    cor(team_data$off_epa, team_data$wins),
+    cor(team_data$def_epa, team_data$wins),
+    cor(team_data$off_third_down, team_data$wins),
+    cor(team_data$def_third_down, team_data$wins)
+  )
+) %>% arrange(desc(abs(Correlation))) %>% print()
+
+data.frame(
+  Metric = c("Turnover Margin", "Third Down Differential", "Red Zone Differential"),
+  Correlation = c(
+    cor(team_data$turnover_margin, team_data$wins),
+    cor(team_data$third_down_diff, team_data$wins),
+    cor(team_data$red_zone_diff, team_data$wins)
+  )
+) %>% arrange(desc(abs(Correlation))) %>% print()
+
+comparison_data <- team_data %>%
+  select(wins, off_epa, def_epa) %>%
+  pivot_longer(cols = c(off_epa, def_epa), names_to = "metric", values_to = "epa") %>%
+  mutate(metric = ifelse(metric == "off_epa", "Offense", "Defense"))
+
+ggplot(comparison_data, aes(x = epa, y = wins, color = metric)) +
+  geom_point(alpha = 0.3, size = 1.5) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1.2) +
+  scale_color_manual(
+    values = c("Offense" = "#2E7D32", "Defense" = "#C62828"),
+    name = ""
+  ) +
+  labs(title = "Offensive vs Defensive EPA: Predictive Power",
+       subtitle = "Which side of the ball better predicts team success?",
+       x = "EPA per Play (Defense: lower is better)",
+       y = "Wins") +
+  theme(legend.position = "top",
+        plot.title = element_text(face = "bold", size = 14))
+
+situational_data <- team_data %>%
+  select(wins, turnover_margin, third_down_diff, red_zone_diff) %>%
+  pivot_longer(cols = -wins, names_to = "metric", values_to = "value") %>%
+  mutate(metric = case_when(
+    metric == "turnover_margin" ~ "Turnover Margin",
+    metric == "third_down_diff" ~ "Third Down Differential",
+    metric == "red_zone_diff" ~ "Red Zone Differential"
+  ))
+
+ggplot(situational_data, aes(x = value, y = wins)) +
+  geom_point(alpha = 0.4, size = 1.5, color = "#1976D2") +
+  geom_smooth(method = "lm", se = TRUE, color = "#0D47A1", linewidth = 1) +
+  facet_wrap(~metric, scales = "free_x", ncol = 3) +
+  labs(title = "Situational Factors and Team Success",
+       subtitle = "How turnovers, third downs, and red zone efficiency impact wins",
+       x = "Differential (Team - Opponent)",
+       y = "Wins") +
+  theme(plot.title = element_text(face = "bold", size = 14),
+        strip.text = element_text(face = "bold", size = 11))
+```
+
+

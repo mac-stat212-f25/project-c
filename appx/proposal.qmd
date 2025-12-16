@@ -2,4 +2,12 @@
 title: "Proposal"
 ---
 
-Your proposal go here.
+- Members: Christian Jones + Colin Mathews
+- Project Description: This project aims to identify which American football statistics are most strongly associated with team success, as measured by overall record.
+- Research Questions: 
+  1. Which team performance statistics are most strongly correlated with overall success in American football?
+  2. Are offensive or defensive metrics more predictive of a team’s win–loss record?
+  3. How do situational factors (e.g., turnovers, third-down efficiency, red zone performance) influence a team’s likelihood of winning?
+- Project Inspiration: Colin and I are both members of the Macalester College football team and share a strong interest in professional sports, both as athletes and as potential future career paths. This project gives us the opportunity to conduct research on a topic we’re passionate about—football performance and success—while also developing analytical and research skills that will strengthen our resumes and prepare us for potential careers in the sports industry.
+- Dataset: We are using the nflreadR and nflfastR packages in RStudio, which contain a wealth of team stats from the last 24 seasons. 
+- Implementation and Responsibility plan: This project will use publicly available NFL data from nflreadr to identify which team-level statistics best explain and predict game success between 2018–2024. The dataset will include team variables like total yards, passing yards, rushing yards, turnovers, and outcomes (win/loss, point differential). We may change these variables depending on what we talk about but we're probably going to choose them using intuition. After cleaning and standardizing these features, we’ll perform some exploratory analysis and fit simple models to measure which stats most strongly influence winning probability. Results will be visualized through plots highlighting what we find to be key drivers in victory. The final project will hopefully communicate clear, data-backed insights into the fundamental factors that determine NFL team success.

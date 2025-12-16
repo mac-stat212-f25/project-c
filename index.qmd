@@ -2,9 +2,11 @@
 title: "Report"
 ---
 
-Your report goes here.
+  &nbsp;&nbsp;&nbsp; As football players at Macalester, Christian and I wondered why it seems like some football teams just can’t improve. Is it the players? The coaches? The general management? We set out to determine which team metrics were most affiliated with a team’s success over the course of a given NFL football season to find out whether this was a problem of performance or something deeper rooted. 
 
-```{r}
-# a test code chunk
-```
+  &nbsp;&nbsp;&nbsp; First, we had to determine the metrics we would herald as the “most important” statistics for winning football games. Once we had narrowed our components down to just EPA, third downs, turnovers, and redzone differential, we compared them to a team’s total wins on a season to produce correlation coefficients for each statistic as they relate to wins. A common saying in football that we looked to verify is that “Defense wins championships.” As our findings show, empirically, there is almost no difference in correlation between wins and offense vs. wins and defense. In fact, offensive efficiency is actually slightly more correlated with wins than defensive efficiency. Somewhat surprisingly, performance in game situations like third downs and turnover margin is more important to team success than redzone differential. 
+
+  &nbsp;&nbsp;&nbsp; In summary, if coaches focused on offensive efficiency through metrics like down success and emphasized performance in key metrics instead of in big plays and systems, their teams would theoretically have more success over the course of a season. It’s important to note that these are averages, and that in any given football game defense can be more important than offense and vice versa. Additionally, the game has evolved even in the last 5 years in such a manner that offensive players are more protected than defensive players, and general consensus around the NFL is that the league favors offense.
+
+
 
